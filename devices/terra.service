@@ -1,0 +1,12 @@
+[Unit]
+Description=Run terraserver device controller
+After=network.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/sites/pac-flight
+Environment=PYTHONPATH=/home/pi/rhizo
+ExecStart=/usr/bin/python /home/pi/terraserver/devices/src/main.py
+
+[Install]
+WantedBy=multi-user.target

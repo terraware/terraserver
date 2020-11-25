@@ -1,0 +1,3 @@
+[submodule "rhizo"]
+	path = rhizo
+	url = https://github.com/rhizolab/rhizo

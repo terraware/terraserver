@@ -1,0 +1,5 @@
+logs
+src/rhizo
+*.swp
+.venv
+venv
