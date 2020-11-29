@@ -1,0 +1,77 @@
+{% extends "base.html"%}
+{% block title %}Terraware Dashboard{% endblock %}
+
+<!---- css/js dependencies ---->
+{% block head %}
+<link rel="stylesheet" type="text/css" href="{{ static_file('css/rhizo/app.css') }}">
+<script type="text/javascript" src="/static/js/moment.min.js"></script>
+<script type="text/javascript" src="/static/js/paho-mqtt.js"></script>
+<script type="text/javascript" src="{{ static_file('js/rhizo/blocks.js') }}"></script>
+<script type="text/javascript" src="{{ static_file('js/rhizo/messages.js') }}"></script>
+<script type="text/javascript" src="{{ static_file('js/manyplot.js') }}"></script>
+<style>
+
+
+</style>
+{% endblock %}
+
+<!---- js code ---->
+{% block script %}
+<script>
+
+var g_sequencePrefix = '{{ sequence_prefix }}';
+
+// run on startup
+$(function() {
+
+	var blockSpecs = [
+		{type: 'heading', text: 'Status'},
+		{
+			type: 'hgroup',
+			blocks: [
+				{type: 'sequence', name: 'ohana/average_soc', label: 'Ohana SOC'},
+				{type: 'sequence', name: 'garage/average_soc', label: 'Garage SOC'},
+				{type: 'sequence', name: 'garage/ups_average_soc', label: 'UPS SOC'},
+			]
+		},
+		{
+			type: 'plot',
+			name: 'soc',
+			labels: ['Ohana SOC', 'Garage SOC', 'UPS SOC'],
+			sequences: ['ohana/average_soc', 'garage/average_soc', 'garage/ups_average_soc'],
+			min: 0,
+			max: 110,
+			height: 350,
+		},
+		{type: 'heading', text: 'Commands'},
+		{
+			type: 'hgroup',
+			blocks: [
+				{type: 'button', text: 'Turn on Ohana generator', onclick: 'sendMessage("ohana_geni", {new_state: 1})'},
+				{type: 'button', text: 'Turn off Ohana generator', onclick: 'sendMessage("ohana_geni", {new_state: 0})'},
+				{type: 'button', text: 'Test RO alarm', onclick: 'sendMessage("test_alarm")'},
+			]
+		},
+		{type: 'sequence', name: 'log', view: 'large'},
+	];
+
+	// create interface
+	createBlocks(blockSpecs).appendTo($('#appBlocks'));
+	readyBlocks();
+	g_wsh.targetFolderPath = g_sequencePrefix;
+
+	// connect to server
+	// fix(clean): should this happen (if live blocks) inside createBlocks?
+	connectWebSocket();
+
+});
+
+</script>
+{% endblock %}
+
+<!---- page content ---->
+{% block content %}
+
+<div id="appBlocks"></div>
+
+{% endblock %}

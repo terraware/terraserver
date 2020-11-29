@@ -139,6 +139,10 @@ def view_item(item_path):
                     if result:
                         return result
 
+                # handle custom dashboards
+                if item_path.endswith('/pac-flight/Dashboard') or item_path.endswith('/testing/Dashboard'):
+                    return render_template('dashboards/pac-flight.html', sequence_prefix=resource.parent.path())
+
             # use a built-in resource viewer based on resource type
             if resource.type == Resource.APP and resource.path().startswith('/system/'):
                 return system_app_viewer(resource)
