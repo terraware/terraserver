@@ -7,10 +7,8 @@ rhizo-server
 2.  Run `sudo pip install -r requirements.txt`
 3.  If you are using postgres, run `sudo pip install psycopg2`
 4.  Run `python prep_config.py`
-5.  Edit `settings/config.py` and add this line:
-    `DISCLAIMER = 'This is pre-release code; the API and database structure will probably change.'`
-6.  Run this command to initialize your database: `python run.py --init-db`
-7.  Create your system admin user: `python run.py --create-admin [email_address]:[password]`
+5.  Run this command to initialize your database: `python run.py --init-db`
+6.  Create your system admin user: `python run.py --create-admin [email_address]:[password]`
 
 ## Running the Server
 

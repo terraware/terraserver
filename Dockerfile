@@ -23,8 +23,7 @@ COPY sample_settings sample_settings
 COPY prep_config.py ./
 
 # add the config
-RUN python prep_config.py \
-    && echo "DISCLAIMER = 'This is pre-release code; the API and database structure will probably change.'" >> settings/config.py
+RUN python prep_config.py
 
 # For Balena, our Makefile replaces this with a Balena base image that does not include
 # build tools such as compilers.

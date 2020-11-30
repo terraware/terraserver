@@ -1,14 +1,12 @@
 import datetime
 import json
 import os
-import pathlib
 
 from flask_restful import Api
 import pytest
 
 # Need to do this before importing main.app, which causes PEP8 E402 violations on the subsequent imports
 os.environ['RHIZO_SERVER_DISABLE_ENVIRONMENT'] = 'True'
-os.environ['RHIZO_SERVER_SETTINGS'] = str(pathlib.Path(__file__).parent) + '/disclaimer.py'
 
 # pylint: disable=wrong-import-position
 from main.api.messages import MessageList  # noqa E402
