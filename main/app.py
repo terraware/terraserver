@@ -22,9 +22,6 @@ app.config.from_pyfile(
 app.config.update(config.environment())
 
 
-# check disclaimer
-assert app.config['DISCLAIMER'] == 'This is pre-release code; the API and database structure will probably change.'
-
 # create database wrapper
 db = SQLAlchemy(app)
 

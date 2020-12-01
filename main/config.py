@@ -15,7 +15,6 @@ def defaults():
         'DATABASE_CONNECT_OPTIONS': {},
         'DEBUG': True,
         'DEBUG_MESSAGING': False,
-        'DISCLAIMER': '',
         'DOC_FILE_PREFIX': '',
         'EXTENSIONS': [],
         'EXTRA_NAV_ITEMS': '',
