@@ -1,7 +1,15 @@
+import gevent
+from gevent import monkey
+monkey.patch_all()
+
+# standard library imports
 import csv
 import time
 import gevent
 import logging
+
+# other imports
+from rhizo.controller import Controller
 from .relay_device import RelayDevice
 from .modbus_device import ModbusDevice
 
@@ -9,11 +17,17 @@ from .modbus_device import ModbusDevice
 # manages a set of devices; each device handles a connection to physical hardware
 class DeviceManager(object):
 
-    def __init__(self, controller):
-        self.controller = controller
+    def __init__(self):
+        self.controller = Controller()
         self.devices = []
         self.start_time = None
-        self.diagnostic_mode = controller.config.device_diagnostics
+        self.diagnostic_mode = self.controller.config.device_diagnostics
+        self.handler = None
+        if self.controller.config.sim:
+            self.load('config/sim_devices.csv')
+        else:
+            self.load('config/devices.csv')
+        self.controller.messages.add_handler(self)
 
     # initialize devices using a CSV file
     def load(self, device_list_file_name):
@@ -35,11 +49,28 @@ class DeviceManager(object):
                         print('unrecognized device type: %s' % device_type)
                     self.devices.append(device)
 
+    def set_handler(self, handler):
+        self.handler = handler
+
+    def handle_message(self, message_type, params):
+        if self.handler:
+            self.handler.handle_message(message_type, params)
+
     # launch device polling greenlets
     def run(self):
         for device in self.devices:
             device.greenlet = gevent.spawn(device.run)
         self.start_time = time.time()
+        while True:
+            try:
+                if self.handler:
+                    self.handler.update()
+            except KeyboardInterrupt:
+                print('exiting')
+                break
+            except Exception as e:
+                logging.warning('exception in handler: %s', e)
+            gevent.sleep(10)
 
     # find a device by server_path
     def find(self, server_path):
@@ -65,3 +96,8 @@ class DeviceManager(object):
             # if all devices are updating, send a watchdog message to server
             if devices_ok:
                 self.controller.send_message('watchdog', {})
+
+
+if __name__ == '__main__':
+    d = DeviceManager()
+    d.run
