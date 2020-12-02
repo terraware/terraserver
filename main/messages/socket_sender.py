@@ -6,40 +6,12 @@ import gevent
 from geventwebsocket.websocket import WebSocketError
 
 
-def prep_logging(log_path):
-    formatter = logging.Formatter('%(asctime)s: %(levelname)s: %(message)s')
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.DEBUG)
-    console_handler.setFormatter(formatter)
-    time_str = datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')
-    file_handler = logging.FileHandler('%s/%d-%s.txt' % (log_path, os.getpid(), time_str))
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(formatter)
-    root = logging.getLogger()
-    root.addHandler(console_handler)
-    root.addHandler(file_handler)
-    root.setLevel(logging.DEBUG)
-
-
 # The SocketSender runs a greenlet that sends messages (temporarily stored in DB) out to websockets.
 class SocketSender(object):
 
     def __init__(self):
         logging.info('init socket sender')
         self.connections = []  # list of WebSocketConnection objects
-        from main.app import app
-        self.logging_prepped = False
-        self.debug_messaging(app.config['DEBUG_MESSAGING'])
-
-    def debug_messaging(self, enable):
-        from main.app import app
-        self._debug_messaging = enable
-        if enable and not self.logging_prepped:
-            prep_logging(app.config['MESSAGING_LOG_PATH'])
-            self.logging_prepped = True
-        if self.logging_prepped and not enable:
-            root = logging.getLogger()
-            root.setLevel(logging.INFO)
 
     # register a client (possible message recipient)
     def register(self, ws_conn):
