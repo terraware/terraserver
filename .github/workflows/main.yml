@@ -1,4 +1,4 @@
-name: rhizo-server
+name: terraware-server
 
 on: [push, pull_request]
 
