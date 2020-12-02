@@ -4,9 +4,9 @@ import gevent
 from optparse import OptionParser
 from geventwebsocket.handler import WebSocketHandler
 from main.app import app, db
-from main.users.auth import create_user
-from main.users.models import User, OrganizationUser
-from main.resources.resource_util import create_system_resources, find_resource
+from main.balena import balena_setup
+from main.users.admin import create_admin_user
+from main.resources.resource_util import create_system_resources
 
 # import all views
 from main.users import views
@@ -47,6 +47,7 @@ if __name__ == '__main__':
     parser.add_option('-m', '--migrate-db', dest='migrate_db', action='store_true', default=False)
     parser.add_option('-p', '--port', dest='port', type=int, default=5000)
     parser.add_option('-l', '--listen-address', dest='listen_address', default='127.0.0.1')
+    parser.add_option('-b', '--balena', action='store_true', default=False)
     (options, args) = parser.parse_args()
 
     # DB operations
@@ -58,20 +59,15 @@ if __name__ == '__main__':
         parts = options.create_admin.split(':')
         email_address = parts[0]
         password = parts[1]
-        assert '.' in email_address and '@' in email_address
-        user_id = create_user(email_address, '', password, 'System Admin', User.SYSTEM_ADMIN)
-        org_user = OrganizationUser()  # add to system organization
-        org_user.organization_id = find_resource('/system').id
-        org_user.user_id = user_id
-        org_user.is_admin = True
-        db.session.add(org_user)
-        db.session.commit()
+        create_admin_user(email_address, password)
         print('created system admin: %s' % email_address)
     elif options.migrate_db:
         pass
 
     # start the debug server
     else:
+        if options.balena:
+            balena_setup(app.config)
         if options.enable_web_sockets:
             print('running with websockets')
             run_with_web_sockets(options.listen_address, options.port)

@@ -18,6 +18,7 @@ def defaults():
         'DOC_FILE_PREFIX': '',
         'EXTENSIONS': [],
         'EXTRA_NAV_ITEMS': '',
+        'FILE_SYSTEM_STORAGE_PATH': '',
         'KEY_PREFIX': 'RHIZO',
         'MESSAGE_TOKEN_SALT': '[Random String Here]',
         'MESSAGING_LOG_PATH': '',
