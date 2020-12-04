@@ -44,6 +44,20 @@ def defaults():
         'THREADS_PER_PAGE': 8,
         'TWILIO_ACCOUNT_SID': '',
         'TWILIO_AUTH_TOKEN': '',
+
+        # By default, the server tells the client to use MQTT_HOST:MQTT_PORT as the address of
+        # the MQTT WebSocket interface. But this isn't always what we need:
+        #
+        # If the server and MQTT server are running in separate Docker containers on the same
+        # host, then MQTT_HOST will point to the MQTT server's hostname on the Docker bridge
+        # network but clients will need to connect to it using the host's external address.
+        # In that case, set WEB_MQTT_SAME_HOST to True.
+        #
+        # If the server and MQTT server are both sitting behind a proxy, e.g., an Nginx instance
+        # that does TLS termination, then the two will look like a single service to the client.
+        # In that case, set both WEB_MQTT_SAME_HOST and WEB_MQTT_SAME_PORT to True.
+        'WEB_MQTT_SAME_HOST': False,
+        'WEB_MQTT_SAME_PORT': False,
     }
 
 

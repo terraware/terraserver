@@ -258,13 +258,16 @@ function createWebSocketHolder() {
 			}
 		}
 
-		if (g_mqttInfo && g_mqttInfo.host) {
-			console.log('opening MQTT connection');
+		if (g_mqttInfo && g_mqttInfo.token) {
+			var host = g_mqttInfo.host || new URL(document.location).hostname
+			var port = g_mqttInfo.port || new URL(document.location).port
+			console.log('opening MQTT connection to ' + host + ':' + port);
+
 			var useSSL = g_mqttInfo.ssl;
 			var clientId = g_mqttInfo.clientId;
 			var userName = 'token';
 			var password = g_mqttInfo.token;
-			wsh.client = new Paho.Client(g_mqttInfo.host, Number(g_mqttInfo.port), clientId);
+			wsh.client = new Paho.Client(host, Number(port), '/', clientId);
 
 			// set callback handlers
 			wsh.client.onConnectionLost = onConnectionLost;

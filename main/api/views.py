@@ -87,16 +87,21 @@ def generate_csrf_token():
 # provide MQTT host and authentication information
 def generate_mqtt_info():
     if current_user.is_authenticated and app.config['MQTT_HOST']:
-        return {
-            'host': app.config['MQTT_HOST'],
-            'port': app.config.get('MQTT_PORT', 443),
+        info = {
             'token': message_auth_token(current_user.id),
             'clientId': '%d-%d' % (current_user.id, random.randint(0, 10000000)),  # fix: reconsider client IDs
             'enableOld': int(app.config.get('ENABLE_OLD_MESSAGING', False)),
-            'ssl': bool(app.config['MQTT_TLS']),
+            'ssl': app.config['MQTT_TLS'],
         }
+
+        if not app.config['WEB_MQTT_SAME_HOST']:
+            info['host'] = app.config['MQTT_HOST']
+        if not app.config['WEB_MQTT_SAME_PORT']:
+            info['port'] = app.config['MQTT_PORT']
     else:
-        return {}
+        info = {}
+
+    return info
 
 
 # add functions that can be used in templates
