@@ -5,22 +5,24 @@ import datetime
 import gevent
 from geventwebsocket.websocket import WebSocketError
 
+logger = logging.getLogger(__name__)
+
 
 # The SocketSender runs a greenlet that sends messages (temporarily stored in DB) out to websockets.
 class SocketSender(object):
 
     def __init__(self):
-        logging.info('init socket sender')
+        logger.info('init socket sender')
         self.connections = []  # list of WebSocketConnection objects
 
     # register a client (possible message recipient)
     def register(self, ws_conn):
-        logging.info('client registered (%s)', ws_conn)
+        logger.info('client registered (%s)', ws_conn)
         self.connections.append(ws_conn)
 
     # unregister a client (e.g. after it has been closed
     def unregister(self, ws_conn):
-        logging.info('client unregistered (%s)', ws_conn)
+        logger.info('client unregistered (%s)', ws_conn)
         self.connections.remove(ws_conn)
 
     # send a message to a specific client (using websocket connection specified in ws_conn)
@@ -52,11 +54,9 @@ class SocketSender(object):
 
             # get all messages since the last message we processed
             messages = message_queue.receive()
-            if self._debug_messaging:
-                logging.debug('received %d messages from message queue', messages.count())
+            logger.debug('received %d messages from message queue', messages.count())
             for message in messages:
-                if self._debug_messaging:
-                    logging.debug('message type: %s, folder: %s', message.type, message.folder_id)
+                logger.debug('message type: %s, folder: %s', message.type, message.folder_id)
 
                 # handle special messages aimed at this module
                 if message.type == 'requestProcessStatus':
@@ -72,11 +72,10 @@ class SocketSender(object):
                                 'parameters': json.loads(message.parameters)
                             }
                             gevent.spawn(self.send, ws_conn, json.dumps(message_struct))
-                            if self._debug_messaging:
-                                if ws_conn.controller_id:
-                                    logging.debug('sending message to controller; type: %s', message.type)
-                                else:
-                                    logging.debug('sending message to browser; type: %s', message.type)
+                            if ws_conn.controller_id:
+                                logger.debug('sending message to controller; type: %s', message.type)
+                            else:
+                                logger.debug('sending message to browser; type: %s', message.type)
 
     # spawn a greenlet that sends messages to clients
     def start(self):
