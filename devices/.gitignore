@@ -1,6 +1,0 @@
-logs
-local.yaml
-*.pyd
-*.pyc
-venv
-.venv

@@ -1,8 +1,0 @@
-# Regular Python dependencies go here. If a dependency requires building native code
-# or is otherwise expensive/slow to install, it should go in requirements-prebuild.txt
-# instead so it can be cached and reused by the Docker build process.
-
-ws4py
-psutil
-pymodbus
-paho-mqtt
