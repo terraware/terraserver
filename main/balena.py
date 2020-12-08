@@ -14,21 +14,26 @@ system and on service restarts.
 3. Initialize the database if needed.
 4. If the TERRAWARE_ADMIN_EMAIL and TERRAWARE_ADMIN_PASSWORD environment variables are present,
    create the admin user or change its password.
+5. If the TERRAWARE_ORGANIZATION_FOLDER, TERRAWARE_ORGANIZATION_NAME, TERRAWARE_CONTROLLER_FOLDER,
+   and TERRAWARE_SECRET_KEY settings are present, create an organization and controller folder
+   and configure the secret key as a valid API key for the controller.
 """
 import logging
 import os
 import socket
 import subprocess
-
-from sqlalchemy.exc import IntegrityError
 import time
 from typing import Dict
 from urllib.parse import urlparse
 
+from sqlalchemy.exc import IntegrityError
+
 from main.app import db
-from main.resources.resource_util import create_system_resources
+from main.resources.models import Resource
+from main.resources.resource_util import create_organization, create_system_resources
 from main.users.admin import create_admin_user
-from main.users.auth import login_validate, reset_user_password
+from main.users.auth import create_key, find_key, login_validate, reset_user_password
+from main.users.models import User
 
 POSTGRESQL_SERVER_WAIT_SECS = 30
 """How long to block waiting for the PostgreSQL server to accept connections."""
@@ -42,6 +47,7 @@ def balena_setup(app_config: Dict[str, str]):
     _wait_for_database(app_config)
     _initialize_database()
     _create_or_update_admin_user()
+    _bootstrap_controller_auth(app_config)
 
 
 def _configure_storage(app_config: Dict[str, str]):
@@ -142,3 +148,33 @@ def _create_or_update_admin_user():
             logger.info('Updated admin password')
     else:
         logger.warning('No admin username/password configured')
+
+
+def _bootstrap_controller_auth(app_config: Dict[str, str]):
+    """Create an organization, controller folder, and API key."""
+    org_name = app_config.get('TERRAWARE_ORGANIZATION_NAME')
+    org_folder = app_config.get('TERRAWARE_ORGANIZATION_FOLDER')
+    folder_name = app_config.get('TERRAWARE_CONTROLLER_FOLDER')
+    secret_key = app_config.get('TERRAWARE_CONTROLLER_SECRET_KEY')
+
+    if org_name and org_folder and folder_name and secret_key:
+        org_resource = Resource.query.filter(Resource.name == org_folder, Resource.type == Resource.ORGANIZATION_FOLDER).one_or_none()
+        if org_resource is not None:
+            org_id = org_resource.id
+        else:
+            logger.info('Creating organization %s', org_name)
+            org_id = create_organization(org_name, org_folder)
+
+        controller_resource = Resource.query.filter(Resource.name == folder_name, Resource.type == Resource.CONTROLLER_FOLDER).one_or_none()
+        if controller_resource is None:
+            logger.info('Creating controller folder %s', folder_name)
+            controller_resource = Resource(name=folder_name, type=Resource.CONTROLLER_FOLDER, parent_id=org_id)
+            db.session.add(controller_resource)
+
+        key_resource = find_key(secret_key)
+        if key_resource is None:
+            logger.info('Creating secret key for controller')
+            admin_user_id = db.session.query(User.id).order_by(User.id).limit(1).scalar()
+            (key_resource, _) = create_key(admin_user_id, org_id, None, controller_resource.id, secret_key)
+
+        db.session.commit()
