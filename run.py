@@ -1,4 +1,6 @@
+import logging
 import signal
+import sys
 
 import gevent
 from optparse import OptionParser
@@ -67,7 +69,15 @@ if __name__ == '__main__':
     # start the debug server
     else:
         if options.balena:
-            balena_setup(app.config)
+            try:
+                balena_setup(app.config)
+            except Exception as ex:  # pylint: disable=broad-except
+                # Don't log the full stack trace because this is likely a database error, which means the
+                # stack trace will be huge; the system will retry the app if it fails which would lead to
+                # huge volumes of log spew.
+                logging.error('Unable to complete Balena setup: %s', ex)
+                sys.exit(1)
+
         if options.enable_web_sockets:
             print('running with websockets')
             run_with_web_sockets(options.listen_address, options.port)
