@@ -31,6 +31,7 @@ def defaults():
         'OUTGOING_EMAIL_SERVER': '',
         'OUTGOING_EMAIL_USER_NAME': '',
         'PRODUCTION': False,
+        'RHIZO_SECRET_KEY': None,
         'S3_ACCESS_KEY': '',
         'S3_SECRET_KEY': '',
         'S3_STORAGE_BUCKET': '',
@@ -40,6 +41,15 @@ def defaults():
         'SQLALCHEMY_TRACK_MODIFICATIONS': False,
         'SSL': False,
         'SYSTEM_NAME': 'Rhizo Server',
+
+        # If all of these are set and the server is running under Balena (--balena option),
+        # it will create an organization, controller folder, and secret key for use by the
+        # device manager.
+        'TERRAWARE_CONTROLLER_FOLDER': None,
+        'TERRAWARE_CONTROLLER_SECRET_KEY': None,
+        'TERRAWARE_ORGANIZATION_FOLDER': None,
+        'TERRAWARE_ORGANIZATION_NAME': None,
+
         'TEXT_FROM_PHONE_NUMBER': '',
         'THREADS_PER_PAGE': 8,
         'TWILIO_ACCOUNT_SID': '',
