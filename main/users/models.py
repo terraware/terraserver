@@ -83,6 +83,18 @@ class AccountRequest(db.Model):
     attributes = db.Column(db.String, nullable=False, comment='JSON field containing extra attributes')
 
 
+# The Organization model stores information about each organization; all data in the system is owned by an organization.
+class Organization():  # preliminary model for review; will inherit from db.Model when ready to create table
+    __tablename__ = 'organizations'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=False)
+    name = db.Column(db.String, nullable=False)
+    folder_id = db.Column(db.ForeignKey('resources.id'), nullable=False, comment="the top-level folder for the organization's data")
+    folder = db.relationship('Resource')
+    timezone = db.Column(db.String, nullable=False)
+    creation_timestamp = db.Column(db.DateTime, nullable=False)
+    attributes = db.Column(db.String, nullable=False, comment='JSON field containing extra attributes')
+
+
 # The OrganizationUser model represents membership of users in organizations.
 # A single user can belong to multiple organizations. A user can be an adminstrator for an organization.
 class OrganizationUser(db.Model):

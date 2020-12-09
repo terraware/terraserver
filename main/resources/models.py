@@ -3,6 +3,12 @@ from sqlalchemy import not_
 from main.app import db
 
 
+# The Version table stores current database version information
+class Version():  # preliminary model for review; will inherit from db.Model when ready to create table
+    __tablename__ = 'version'
+    schema_version = db.Column(db.String)
+
+
 # The Resource model provides a hierarchy of folders and files.
 # It is the primary table for organization data stored on the server.
 class Resource(db.Model):

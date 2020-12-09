@@ -1,6 +1,20 @@
 from main.app import db
 
 
+# The Notification model stores notifications for users (send via email/sms and/or displayed in UI).
+class Notification():  # preliminary model for review; will inherit from db.Model when ready to create table
+    __tablename__ = 'notifications'
+    id = db.Column(db.BigInteger, primary_key=True)
+    timestamp = db.Column(db.DateTime, nullable=False)
+    controller_id = db.Column(db.ForeignKey('resources.id'), comment='the originating controller (null if user)')
+    user_id = db.Column(db.ForeignKey('users.id'), comment='the originating user (null if controller)')
+    message = db.Column(db.String, nullable=False)
+    source = db.Column(db.String, nullable=False, comment='human-friendly version of originating message source')
+    show_in_ui = db.Column(db.Boolean, nullable=False)
+    recipients = db.Column(db.String, nullable=False, comment='JSON list of phone numbers and emails; list can be empty if show_in_ui is True')
+    attributes = db.Column(db.String, nullable=False, comment='JSON field containing extra message attributes')
+
+
 # The Message model holds messages temporarily in the database.
 # (It is used by the MessageQueueBasic class; other message queue implementations may use other message storages.)
 class Message(db.Model):
