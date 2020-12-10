@@ -6,10 +6,6 @@ FROM python:3.8.5-buster AS build
 
 WORKDIR /rhizo-server
 
-# Install expensive dependencies as a separate build step so we don't have to repeat it if
-# cheaper dependencies are added/removed.
-COPY requirements-prebuild.txt ./
-RUN pip install -r requirements-prebuild.txt
 RUN pip install psycopg2-binary
 
 # Install remaining dependencies

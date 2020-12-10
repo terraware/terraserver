@@ -1,5 +1,4 @@
 import time
-import gevent
 import datetime
 from main.app import db
 from main.workers.util import worker_log
@@ -25,7 +24,7 @@ def message_deleter():
         worker_log('message_deleter', 'deleted %d messages in %.3f seconds' % (delete_count, delete_time))
 
         # sleep for 6 hours
-        gevent.sleep(6 * 60 * 60)
+        time.sleep(6 * 60 * 60)
 
 
 # if run as top-level script

@@ -2,17 +2,17 @@ import os
 import json
 import logging
 import datetime
-import gevent
-from geventwebsocket.websocket import WebSocketError
+from threading import Thread
 
 logger = logging.getLogger(__name__)
 
 
-# The SocketSender runs a greenlet that sends messages (temporarily stored in DB) out to websockets.
-class SocketSender(object):
+# The SocketSender runs a thread that sends messages (temporarily stored in DB) out to websockets.
+class SocketSender(Thread):
 
     def __init__(self):
         logger.info('init socket sender')
+        Thread.__init__(self)
         self.connections = []  # list of WebSocketConnection objects
 
     # register a client (possible message recipient)
@@ -31,7 +31,7 @@ class SocketSender(object):
         if not ws_conn.ws.closed:
             try:
                 ws_conn.ws.send(message)
-            except WebSocketError:
+            except Exception:  # pylint: disable=broad-except
                 print('unable to send to websocket (%s)', ws_conn)
 
     # send a message structure to a specific client
@@ -48,7 +48,7 @@ class SocketSender(object):
         self.send_message(ws_conn, 'error', {'message': message_text})
 
     # this function sits in a loop, waiting for messages that need to be sent out to subscribers
-    def send_messages(self):
+    def run(self):
         from main.app import message_queue
         while True:
 
@@ -71,15 +71,11 @@ class SocketSender(object):
                                 'timestamp': message.timestamp.isoformat() + 'Z',
                                 'parameters': json.loads(message.parameters)
                             }
-                            gevent.spawn(self.send, ws_conn, json.dumps(message_struct))
+                            Thread(target=self.send, args=[ws_conn, json.dumps(message_struct)]).start()
                             if ws_conn.controller_id:
                                 logger.debug('sending message to controller; type: %s', message.type)
                             else:
                                 logger.debug('sending message to browser; type: %s', message.type)
-
-    # spawn a greenlet that sends messages to clients
-    def start(self):
-        gevent.spawn(self.send_messages)
 
     # send information about the current process as a message to the system folder
     # (in a multi-process environment, each process has an instance of this class)

@@ -1,10 +1,8 @@
 import logging
-import signal
 import sys
 
-import gevent
 from optparse import OptionParser
-from geventwebsocket.handler import WebSocketHandler
+
 from main.app import app, db
 from main.balena import balena_setup
 from main.users.admin import create_admin_user
@@ -21,29 +19,12 @@ from main.messages import models
 from main.resources import models
 
 
-# run a local server with websocket support
-def run_with_web_sockets(listen_address, port):
-    server = gevent.pywsgi.WSGIServer((listen_address, port), app, handler_class=WebSocketHandler)
-
-    # Shut down gracefully if running in a container that gets stopped.
-    def shutdown(signum, frame):
-        print('Shutting down on signal', signum)
-        server.stop()
-    signal.signal(signal.SIGTERM, shutdown)
-
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        pass
-
-
 # if run as top-level script
 if __name__ == '__main__':
 
     # process command arguments
     parser = OptionParser()
     parser.add_option('-w', '--run-as-worker', dest='run_as_worker', default='')
-    parser.add_option('-s', '--enable-web-sockets',  dest='enable_web_sockets', action='store_true', default=False)
     parser.add_option('-d', '--init-db', dest='init_db', action='store_true', default=False)
     parser.add_option('-a', '--create-admin', dest='create_admin', default='')
     parser.add_option('-m', '--migrate-db', dest='migrate_db', action='store_true', default=False)
@@ -78,8 +59,4 @@ if __name__ == '__main__':
                 logging.error('Unable to complete Balena setup: %s', ex)
                 sys.exit(1)
 
-        if options.enable_web_sockets:
-            print('running with websockets')
-            run_with_web_sockets(options.listen_address, options.port)
-        else:
-            app.run(host=options.listen_address, port=options.port, debug=True)
+        app.run(host=options.listen_address, port=options.port, debug=True)

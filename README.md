@@ -98,15 +98,6 @@ controller and controller). Some messages are handled specifically by the server
 *   send_email: sends an email message from the server
 *   send_text_message: sends a text message from the server
 
-### WebSocket connections
-
-A WebSocket connection is opened by via `/api/v1/websocket`. Authentication is similar to the REST
-authentication described below.
-
-Websocket messages are sent as JSON strings with the following minimum format:
-`{ “type”: <type>, “parameters”: { <parameters> }`.
-Here `<parameters>` is a dictionary of parameter names and values.
-
 ## Permissions
 
 Permissions specify which users can access which resources. We're currently reworking the permission

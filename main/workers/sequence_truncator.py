@@ -1,5 +1,5 @@
 import json
-import gevent
+import time
 from sqlalchemy import func
 from main.app import db
 from main.resources.models import Resource, ResourceRevision
@@ -59,7 +59,7 @@ def sequence_truncator():
             worker_log('sequence_truncator', 'done with truncation pass; truncated %d sequences' % truncate_count)
 
         # sleep for an hour
-        gevent.sleep(60 * 60)
+        time.sleep(60 * 60)
 
 
 # if run as top-level script
