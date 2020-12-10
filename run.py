@@ -18,13 +18,15 @@ from main.users import models
 from main.messages import models
 from main.resources import models
 
+from run_worker import worker
+
 
 # if run as top-level script
 if __name__ == '__main__':
 
     # process command arguments
     parser = OptionParser()
-    parser.add_option('-w', '--run-as-worker', dest='run_as_worker', default='')
+    parser.add_option('-w', '--run-as-worker', dest='run_as_worker', action='store_true', default=False)
     parser.add_option('-d', '--init-db', dest='init_db', action='store_true', default=False)
     parser.add_option('-a', '--create-admin', dest='create_admin', default='')
     parser.add_option('-m', '--migrate-db', dest='migrate_db', action='store_true', default=False)
@@ -59,4 +61,6 @@ if __name__ == '__main__':
                 logging.error('Unable to complete Balena setup: %s', ex)
                 sys.exit(1)
 
+        if options.run_as_worker:
+            worker(blocking=False)
         app.run(host=options.listen_address, port=options.port, debug=True)
