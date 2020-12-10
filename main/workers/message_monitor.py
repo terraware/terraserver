@@ -4,7 +4,6 @@ import datetime
 
 
 # external imports
-import gevent
 import paho.mqtt.client as mqtt
 
 
@@ -110,9 +109,7 @@ def message_monitor():
     if mqtt_tls:
         mqtt_client.tls_set()  # enable SSL
     mqtt_client.connect(mqtt_host, mqtt_port)
-    mqtt_client.loop_start()
-    while True:
-        gevent.sleep(60)
+    mqtt_client.loop_forever(retry_first_connection=True)
 
 
 # if run as top-level script

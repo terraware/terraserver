@@ -1,6 +1,6 @@
 import json
 import datetime
-import gevent
+import time
 from .message_queue import MessageQueue
 
 
@@ -35,7 +35,7 @@ class MessageQueueBasic(MessageQueue):
         while True:
 
             # sleep for a bit; don't want to overload the database
-            gevent.sleep(0.5)
+            time.sleep(0.5)
 
             # fix(soon): is there a good way to avoid losing messages while server is restarting? could go back 5 minutes, but then we'd get
             # duplicates. it would be nice if each web/worker process could remember where it was across restarts

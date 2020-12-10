@@ -5,7 +5,6 @@ import datetime
 
 
 # external imports
-import gevent
 from sqlalchemy import not_
 from sqlalchemy.orm.exc import NoResultFound
 
@@ -81,4 +80,4 @@ def controller_watchdog():
             last_log_time = time.time()
 
         # wait one minute
-        gevent.sleep(60)
+        time.sleep(60)

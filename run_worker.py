@@ -1,9 +1,7 @@
 # standard python imports
 import json
-
-
-# external imports
-import gevent
+from threading import Thread
+import time
 
 
 # internal imports
@@ -28,16 +26,16 @@ def worker():
     worker_log('system', 'starting worker process')
 
     # start various worker threads
-    gevent.spawn(controller_watchdog)
-    gevent.spawn(sequence_truncator)
-    gevent.spawn(message_deleter)
-    gevent.spawn(message_monitor)
+    Thread(target=controller_watchdog).start()
+    Thread(target=sequence_truncator).start()
+    Thread(target=message_deleter).start()
+    Thread(target=message_monitor).start()
 
     # loop forever
     while True:
 
         # sleep for one second each loop
-        gevent.sleep(1)
+        time.sleep(1)
 
         # check for messages
         if False:
@@ -48,7 +46,7 @@ def worker():
                     params = json.loads(message.parameters)
                     if params['name'] == 'add_resource_revisions':
                         print('#### starting add_resource_revisions')
-                        gevent.spawn(add_resource_revisions)
+                        # Thread(add_resource_revisions).start()
 
 
 # if run as top-level script

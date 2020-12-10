@@ -3,10 +3,11 @@ import json
 import base64
 import logging
 import datetime
+from threading import Thread
+import time
 
 
 # external imports
-import gevent
 from flask import request
 from flask_login import current_user
 from sqlalchemy import not_
@@ -97,7 +98,7 @@ def manage_web_socket(ws):
             except json.JSONDecodeError:
                 break  # if client sends bad message; close this connection
             process_web_socket_message(message_struct, ws_conn)
-        gevent.sleep(0.05)  # sleep to let other stuff run
+        time.sleep(0.05)  # sleep to let other stuff run
 
     # websocket has been closed
     ws_conn.log_disconnect()
@@ -256,6 +257,11 @@ def process_web_socket_message(message_struct, ws_conn):
         if ws_conn.access_level(folder_id) >= ACCESS_LEVEL_WRITE:
             parameters = message_struct['parameters']
             # fix(soon): can we move this spawn above access level check (might require request context)
-            gevent.spawn(
-                message_queue.add, folder_id, None, message_type, parameters, sender_controller_id=ws_conn.controller_id,
-                sender_user_id=ws_conn.user_id)
+            Thread(
+                target=message_queue.add,
+                args=[folder_id, None, message_type, parameters],
+                kwargs={
+                    'sender_controller_id': ws_conn.controller_id,
+                    'sender_user_id': ws_conn.user_id
+                }
+            ).start()
