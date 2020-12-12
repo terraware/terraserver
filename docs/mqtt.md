@@ -4,36 +4,50 @@ The system listens for MQTT messages for changes to device status and events. Cl
 
 ## Topics
 
-The MQTT topic hierarchy is the same as the resource hierarchy and has the following path elements.
+Clients can use the MQTT broker to send and receive arbitrary messages to each other, and can use whatever naming scheme they like for the topics of such messages.
 
-1. Organization folder name, 1 path element.
-2. Controller folder name, 1 path element. **Q: Is this always a direct child of the org?**
-3. Device group, 1 or more path elements. **Q: I am not sure what the correct term for this is**
-4. Device identifier, 1 path element.
+The server pays attention to messages whose topics are the paths of folders in the resource hierarchy. The resources data model allows an arbitrary tree of folders, but typically, resource folders will be arranged in an ordered hierarchy like this:
+
+1. Organization folder name, typically 1 path element.
+2. Controller folder name, typically 1 path element. This usually corresponds to a site.
+3. Device group, 1 or more path elements. This might group devices by type and/or by location within a site.
+4. Device identifier, typically 1 path element. This groups together the individual resources associated with a single device.
 
 So, for example, a topic of `treehuggers/easterisland/quarry/moai-1` would mean the device `moai-1` in the quarry at the Treehuggers organization's Easter Island site.
 
-For messages that don't pertain to individual devices, only the first two path elements are included in the topic, e.g., `treehuggers/easterisland`.
+The server ignores any message whose topic isn't the path of a folder resource.
 
 ## Authentication
 
-The system authenticates to the MQTT broker by generating an auth token and presenting it as the password with a username of `token`. The token is always a string value with comma-delimited fields:
+Clients and the Terraware server have to authenticate themselves to the MQTT broker to publish and receive messages. [A custom authentication plugin for Mosquitto](/mqtt_auth) implements the authentication scheme described here.
 
-1. `0`
+There are two authentication schemes, token-based and key-based.
+
+### Token authentication
+
+Token-based authentication is used by browser clients and Terraware Server itself. They both act as clients from the MQTT broker's point of view.
+
+An MQTT client authenticates to the MQTT broker by generating an auth token and presenting it as the password with a username of `token` during the initial MQTT connection handshake. The token is always a string value with comma-delimited fields:
+
+1. Version number, currently always `0`
 2. Integer POSIX timestamp
-3. `0` (this is nonzero when users connect to the broker, but always zero when the server connects)
+3. User ID, always `0` for server-initiated connections
 4. A 10-character random alphanumeric nonce
 5. See below
 
 The last field is the base64 encoding of the SHA-512 hash of the UTF-8 encoding of a string with the following comma-delimited fields:
 
 1. The timestamp value from field 2 of the enclosing message
-2. The value of field 3 of the enclosing message (`0`)
+2. The user ID (`0` for server-initiated connections)
 3. The value of field 4 of the enclosing message (the 10-character nonce)
 4. A salt string, configured in the server settings
-5. Nothing (final field is empty, that is, the string ends with a comma; this is nonempty when users connect to the broker but empty for the server)
+5. For user-initiated connections, a salted hash of the user's password. This field is empty for server-initiated connections. **TODO: Document password hashing.**
 
-On the broker side, the token is checked against the database using a custom [authentication plugin for Mosquitto](https://github.com/terraware/terraware-server/tree/master/mqtt_auth).
+### Key authentication
+
+Key-based authentication is used by controllers.
+
+**TODO: Document key-based authentication, including why it's used on controllers.**
 
 ## Payload formats
 
@@ -41,25 +55,20 @@ The system accepts incoming messages in two formats: JSON and short. If the firs
 
 ### JSON messages
 
-A JSON payload must be an object with zero or more fields. Each field identifies a particular type of message. Multiple messages of different types may be combined into a single payload. **Q: This is how the code currently works; you could have a single MQTT message with both `watchdog` and `send_email` fields. I think that is probably something we should treat as an error instead.**
-
-The following fields are recognized in messages whose topics only include the first two path elements.
+A JSON payload must be an object with exactly one field. The name of the field determines the message type. The following message types are recognized.
 
 * `send_email`
 * `send_sms`
-* `watchdog`
-  
-The following fields are recognized in messages whose topics include all four path elements.
-
 * `update`
+* `watchdog`
 
 #### send\_email
 
-This field causes the server to send email. The value is an object with the following fields.
+This field causes the server to send email. The message topic must be the path of a controller folder. The value is an object with the following fields.
 
 | Name | Type | Required? | Description
 | --- | --- | --- | ---
-| `emailAddresses` or `email_addresses` | string | *Yes* | Recipient address.
+| `email_addresses` | string | *Yes* | Recipient address.
 | `subject` | string | *Yes* | Subject line.
 | `body` | string | *Yes* | Message body.
 
@@ -78,19 +87,19 @@ Example payload:
 Behavior notes:
 
 * The sender's name and address are server configuration options and cannot be set on a per-message basis.
-* Though the `emailAddresses` field name is plural, the system only supports sending to a single address.
+* Though the `email_addresses` field name is plural, the system only supports sending to a single address. (CU-h8w9mc)
 * A single attempt is made to deliver the message.
 * The server enforces a rate limit and silently ignores this message if there have been too many of them recently.
 * The message is recorded in the `outgoing_messages` table (unless the request exceeds the rate limit).
-* The body is included twice in the email, once as the main content and once as an attachment of type `text/plain`. **Q: Why does it do this?**
+* The body is included twice in the email, once as the main content and once as an attachment of type `text/plain`. (CU-h8wd7v)
 
 #### send\_sms
 
-This field causes the server to send a text message. The value is an object with the following fields.
+This field causes the server to send a text message. The message topic must be the path of a controller folder. The value is an object with the following fields.
 
 | Name | Type | Required? | Description
 | --- | --- | --- | ---
-| `phoneNumbers` or `phone_numbers` | string | *Yes* | Recipient phone number in [E.123 international notation](https://en.wikipedia.org/wiki/E.123).
+| `phone_numbers` | string | *Yes* | Recipient phone number in [E.123 international notation](https://en.wikipedia.org/wiki/E.123).
 | `message` | string | *Yes* | Message body, up to 1600 characters.
 
 Example payload:
@@ -107,24 +116,24 @@ Example payload:
 Behavior notes:
 
 * The sender's phone number is a server configuration option and cannot be set on a per-message basis.
-* Though the `phoneNumbers` field is plural, the system only supports sending to a single recipient.
+* Though the `phone_numbers` field is plural, the system only supports sending to a single recipient. (CU-h8w9mc)
 * A single attempt is made to deliver the message to Twilio. Twilio itself will retry delivery if there's a problem with the cellular infrastructure.
 * The server enforces a rate limit and silently ignores this message if there have been too many of them recently.
 * The message is recorded in the `outgoing_messages` table (unless the request exceeds the rate limit).
 
 #### update
 
-This field causes the server to record new values from the device specified in the message's topic.
+This field causes the server to record new values for some number of sequences. The message topic must be the path of a folder resource.
 
 The value of the `update` field is a single JSON object with string name/value pairs representing the updated data from the device.
 
-In that inner object, the name `$t` is reserved. If present, it must contain a date and time in ISO-8601 extended format including time zone, and represents the time the values were read from the device. If there is no `$t` present, the server uses the date and time it received the message from the MQTT broker.
+Names beginning with `$` are reserved for metadata. Currently, there is one such name defined, `$t`. If present, it must contain a date and time in ISO-8601 extended format including time zone, and represents the time the values were read from the device. If there is no `$t` field present, the server uses the date and time it received the message from the MQTT broker.
 
-**Q: Should we explicitly reserve names that start with dollar signs, so we can add more later if needed?**
-
-Values from devices are represented as sequence resources in the data model. Each sequence resource has a type, which is configured server-side.
+Values from devices are represented as sequence resources in the data model. Each sequence resource has a name and a type, which are configured server-side.
 
 In the JSON payload, values from devices must always be represented as strings, but the strings may be interpreted differently depending on the sequence's configured data type.
+
+Names of sequences are always relative to the folder specified by the message topic.
 
 Example payload:
 
@@ -141,7 +150,7 @@ Example payload:
 
 #### watchdog
 
-This field causes the server to record that it has received a message from the controller named by the message topic. The value is ignored.
+This field causes the server to record that it has received a message from the controller named by the message topic. The topic must therefore be the path of a controller folder. The value is currently ignored and should be an empty JSON object.
 
 ### Short messages
 
