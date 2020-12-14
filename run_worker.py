@@ -20,25 +20,25 @@ from main.resources import models
 
 
 # the worker process
-def worker():
+def worker(blocking=True, debug=False):
 
     # log that the worker process is starting
     worker_log('system', 'starting worker process')
 
     # start various worker threads
-    Thread(target=controller_watchdog).start()
-    Thread(target=sequence_truncator).start()
-    Thread(target=message_deleter).start()
-    Thread(target=message_monitor).start()
+    Thread(target=controller_watchdog, daemon=True).start()
+    Thread(target=sequence_truncator, daemon=True).start()
+    Thread(target=message_deleter, daemon=True).start()
+    Thread(target=message_monitor, daemon=True).start()
 
     # loop forever
-    while True:
+    while blocking:
 
         # sleep for one second each loop
         time.sleep(1)
 
         # check for messages
-        if False:
+        if debug:
             messages = message_queue.receive()
             for message in messages:
                 if message.type == 'start_worker_task':

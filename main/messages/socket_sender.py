@@ -12,7 +12,7 @@ class SocketSender(Thread):
 
     def __init__(self):
         logger.info('init socket sender')
-        Thread.__init__(self)
+        Thread.__init__(self, daemon=True)
         self.connections = []  # list of WebSocketConnection objects
 
     # register a client (possible message recipient)
@@ -71,7 +71,7 @@ class SocketSender(Thread):
                                 'timestamp': message.timestamp.isoformat() + 'Z',
                                 'parameters': json.loads(message.parameters)
                             }
-                            Thread(target=self.send, args=[ws_conn, json.dumps(message_struct)]).start()
+                            Thread(target=self.send, daemon=True, args=[ws_conn, json.dumps(message_struct)]).start()
                             if ws_conn.controller_id:
                                 logger.debug('sending message to controller; type: %s', message.type)
                             else:
