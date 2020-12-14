@@ -26,10 +26,10 @@ def worker(blocking=True, debug=False):
     worker_log('system', 'starting worker process')
 
     # start various worker threads
-    Thread(target=controller_watchdog).start()
-    Thread(target=sequence_truncator).start()
-    Thread(target=message_deleter).start()
-    Thread(target=message_monitor).start()
+    Thread(target=controller_watchdog, daemon=True).start()
+    Thread(target=sequence_truncator, daemon=True).start()
+    Thread(target=message_deleter, daemon=True).start()
+    Thread(target=message_monitor, daemon=True).start()
 
     # loop forever
     while blocking:

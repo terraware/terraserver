@@ -259,6 +259,7 @@ def process_web_socket_message(message_struct, ws_conn):
             # fix(soon): can we move this spawn above access level check (might require request context)
             Thread(
                 target=message_queue.add,
+                daemon=True,
                 args=[folder_id, None, message_type, parameters],
                 kwargs={
                     'sender_controller_id': ws_conn.controller_id,
