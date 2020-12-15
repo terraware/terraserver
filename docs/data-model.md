@@ -11,10 +11,8 @@ objects are accessed using paths. Each resource has a type:
 * organization folder: the top-level folder corresponding to an organization
 * controller folder: a folder corresponding to a controller
 * basic folder: a folder that can contain other resources
-* remote folder: **Q: What is this?**
 * file: a text or binary file (image, CSV, markdown, etc.)
 * sequence: a time series of values (numeric, string, or images)
-* app: **Q: What is this?**
 
 Non-folder resources (files and sequences) are represented as a time-ordered list of
 resource revisions. In a sequence, these revisions are timestamped values of the time series.
@@ -26,18 +24,13 @@ placed directly in the server database.
 
 #### Folder organization
 
-Folders can be nested in an arbitrary hierarchy, subject to a few rules.
+Folders can be nested in an arbitrary hierarchy, but the top-level resource (the first element in the resource path) must always be an organization folder, and organization folders cannot appear below the top level of the hierarchy.
 
-* The top-level resource is always an organization folder.
-* Organization folders can only appear at the top level (that is, organizations can't be nested). **Q: Is this true?**
-* At most one controller folder can appear in a path (that is, controllers can't be nested). **Q: Is this true? What would it mean to nest controllers?**
-* Sequences and files whose data come from controllers must be descendents of a controller folder, but there can be additional basic folders between the controller folder and the sequence or file resource.
+Typically, each controller will have its own controller folder, and each device managed by that controller will have a basic folder under the controller folder. Concretely, a typical resource path will look like:
 
-Typically, each physical device will be represented by a basic folder that contains the sequences and files with that device's data.
+    /organization/controller/device/sequence
 
-Putting all that together, the path to a sequence representing readings from a device that is managed by a controller has a structure like,
-
-    /organization[/basic[/basic...]]/controller[/basic[/basic...]]/device/sequence
+For large installations, the folders can be further subdivided if needed using additional levels of basic folders.
 
 #### Permissions
 
@@ -226,8 +219,8 @@ The hierarchy is represented using the `parent_id` column.
 | `system_attributes`      | text      | not null |                | JSON object with system-defined keys; see below
 | `user_attributes`        | text      |          |                | JSON object with additional user-defined values
 | `deleted`                | boolean   | not null |                | If true, this resource is ignored in queries and its name may be reused
-| `hash`                   | text(50)  |          |                |
-| `size`                   | bigint    |          |                |
+| `hash`                   | text(50)  |          |                | Legacy; use the `hash` system attribute instead (see below)
+| `size`                   | bigint    |          |                | Legacy; use the `size` system attribute instead (see below)
 
 The `permissions` column is a JSON array. See the "Permissions" section above for more details.
 
@@ -238,10 +231,10 @@ The `type` column is a numeric code with one of the following values. See "The R
 | 10  | Basic folder
 | 11  | Organization folder
 | 12  | Controller folder
-| 13  | Remote folder
+| 13  | Remote folder (no longer used; should never appear)
 | 20  | File
 | 21  | Sequence
-| 22  | App
+| 22  | App (soon to be removed)
 
 The `system_attributes` column is a JSON object. The following keys are recognized.
 
@@ -252,14 +245,12 @@ The `system_attributes` column is a JSON object. The following keys are recogniz
 | `max_history` | The number of revisions to retain for this resource; older ones are pruned from the database.
 | `units` | For numeric sequences, what unit of measurement the number represents.
 | `min_storage_interval` | For sequences, the minimum number of seconds allowed between updates. Updates that arrive before the interval are ignored.
-| `remote_path` | For remote folder resources, **Q: What does this mean?**
-| `controller_id` | For remote folder resources, **Q: What does this mean?**
 | `full_name` | For organization folders, the human-readable display name of the organization; unlike the `name` column it may contain whitespace and upper-case letters.
 | `timezone` | For organization folders, the [tz database name](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) of the organization's primary time zone.
 | `watchdog_recipients` | For controller folders, a comma-separated list of email addresses and phone numbers to send alerts to if the controller fails to send a watchdog message in the last `watchdog_minutes` minutes.
 | `watchdog_minutes` | For controller folders, the amount of time to wait for watchdog messages before generating an alert. If not set or 0, no alerts are sent.
-| `hash` | For file resources, the hexadecimal SHA-1 hash of the file contents. **Q: This appears to duplicate the `hash` column in the table; what is the difference?**
-| `size` | For file resources, the size of the file in bytes. **Q: Same question as `hash`**
+| `hash` | For file resources, the hexadecimal SHA-1 hash of the file contents.
+| `size` | For file resources, the size of the file in bytes.
 
 The `data_type` system attribute is required for sequence resources and must be one of the following.
 
