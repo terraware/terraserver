@@ -73,28 +73,37 @@ Outgoing user invitations. Used to verify the access codes in links when people 
 | Column | Type | Null | References | Notes
 | --- | --- | --- | --- | ---
 | `id`                 | integer   | not null |                |
-| `organization_name`  | text(100) |          |                |
+| `organization_name`  | text(100) |          |                | Human-readable organization name, pulled from the `full_name` system attribute on the organization folder
 | `organization_id`    | integer   |          | `resources.id` |
 | `inviter_id`         | integer   |          | `users.id`     |
 | `creation_timestamp` | timestamp | not null |                |
 | `redeemed_timestamp` | timestamp |          |                |
 | `access_code`        | text(40)  | not null |                | Randomly generated code
 | `email_address`      | text      | not null |                |
-| `email_sent`         | boolean   | not null |                |
-| `email_failed`       | boolean   | not null |                |
-| `attributes`         | text      | not null |                | **Q: What is this?**
+| `email_sent`         | boolean   | not null |                | If true, email was successfully sent to an email server; does not indicate successful delivery to the recipient
+| `email_failed`       | boolean   | not null |                | If true, all attempts to send the email failed
+| `attributes`         | text      | not null |                | JSON object with additional data about the request; currently always `{}`
 
 ### action\_throttles
 
-Used for rate limiting of actions such as email alerts.
+Used for rate limiting of actions such as email alerts. Rate limiting is per-user or per-controller.
 
 | Column | Type | Null | References | Notes
 | --- | --- | --- | --- | ---
 | `id`            | integer  | not null |                |
 | `controller_id` | integer  |          | `resources.id` |
 | `user_id`       | integer  |          | `users.id`     |
-| `type`          | text(50) | not null |                |
-| `recent_usage`  | text     | not null |                |
+| `type`          | text(50) | not null |                | See below
+| `recent_usage`  | text     | not null |                | See below
+
+One of `controller_id` or `user_id` must be present and indicates which principal is performing the action.
+
+`type` indicates the specific action being throttled. There are no restrictions on the value other than the maximum length, but currently the server uses the following values:
+
+* `send_email`
+* `send_text_message`
+
+`recent_usage` is a comma-delimited list of integer POSIX timestamps in ascending order representing recent occurrences of the action.
 
 ### controller\_status
 
@@ -106,7 +115,7 @@ Monitoring data for each controller, to allow for alerting if controllers die.
 | `client_version`             | text(80)  | not null |                |
 | `web_socket_connected`       | boolean   | not null |                |
 | `last_connect_timestamp`     | timestamp |          |                |
-| `last_watchdog_timestamp`    | timestamp |          |                | When the most recent watchdog heartbeat was receved from the controller
+| `last_watchdog_timestamp`    | timestamp |          |                | When the most recent watchdog heartbeat was received from the controller
 | `watchdog_notification_sent` | boolean   | not null |                | An alert has already been generated for the current lack of a watchdog request
 | `attributes`                 | text      | not null |                |
 
@@ -130,6 +139,8 @@ API keys used by controllers and users. **TODO: Link to docs about key-based aut
 | `key_storage_nonce`       | text      |          |                |
 
 ### messages
+
+**Obsolete!** This was used as the queue for real-time messaging before the server switched to using MQTT.
 
 | Column | Type | Null | References | Notes
 | --- | --- | --- | --- | ---
@@ -155,17 +166,23 @@ Associates users with organizations. A user may be a member of multiple organiza
 
 ### outgoing\_messages
 
+Stores the contents of outgoing email and SMS messages.
+
 | Column | Type | Null | References | Notes
 | --- | --- | --- | --- | ---
 | `id`            | integer   | not null |                |
-| `controller_id` | integer   |          | `resources.id` |
-| `user_id`       | integer   |          | `users.id`     |
+| `controller_id` | integer   |          | `resources.id` | Identity of sender if email was sent by a controller
+| `user_id`       | integer   |          | `users.id`     | Identity of sender if email was sent by a user
 | `timestamp`     | timestamp | not null |                |
-| `recipients`    | text      | not null |                |
-| `message`       | text      | not null |                |
-| `attributes`    | text      | not null |                |
+| `recipients`    | text      | not null |                | Comma-delimited list of phone numbers or email addresses
+| `message`       | text      | not null |                | See below
+| `attributes`    | text      | not null |                | JSON object with additional attributes; currently always `{}`
+
+`message` is the content of the text message for an outgoing SMS, and is the _subject line_ of an outgoing email message. The body of outgoing email is not recorded in the table.
 
 ### pins
+
+Stores PIN codes used for registration of new controllers. **TODO: Link to docs about key-based authentication.**
 
 | Column | Type | Null | References | Notes
 | --- | --- | --- | --- | ---
@@ -177,27 +194,35 @@ Associates users with organizations. A user may be a member of multiple organiza
 | `user_id`            | integer   |          | `users.id`     |
 | `controller_id`      | integer   |          | `resources.id` |
 | `key_created`        | boolean   |          |                |
-| `attributes`         | text      | not null |                |
+| `attributes`         | text      | not null |                | JSON object with additional attributes; currently always `{}`
 
 ### resource\_revisions
 
-Payloads of non-folder resources. For sequence resources, there may be multiple revisions with a single resource ID. See "The Resource Hierarchy" above.
+Contents of non-folder resources. Each resource is versioned; when a new value is written, it is recorded as a new row in this table. See "The Resource Hierarchy" above.
 
 | Column | Type | Null | References | Notes
 | --- | --- | --- | --- | ---
 | `id`          | integer   | not null |                |
 | `resource_id` | integer   | not null | `resources.id` |
 | `timestamp`   | timestamp | not null |                |
-| `data`        | binary    |          |                |
+| `data`        | binary    |          |                | See below
+
+`data` holds the contents of resources under a certain size. Larger resources are stored using an external storage manager (in the filesystem or on S3, for example) in which case `data` is null.
+
+For numeric sequences, `data` contains an ASCII representation of the number in decimal form.
+
+For text sequences, `data` contains the text string in UTF-8 encoding. (But the rule about large contents applies; sufficiently large values of text sequences are kept in external storage.)
 
 ### resource\_views
+
+Holds per-user preferences for viewing individual resources, e.g., sort order for the items in a folder.
 
 | Column | Type | Null | References | Notes
 | --- | --- | --- | --- | ---
 | `id`          | integer | not null |                |
 | `resource_id` | integer | not null | `resources.id` |
 | `user_id`     | integer | not null | `users.id`     |
-| `view`        | text    | not null |                |
+| `view`        | text    | not null |                | JSON object with resource-specific settings; semantics are defined by the front end
 
 ### resources
 
@@ -275,6 +300,8 @@ For image sequences, a small thumbnail of the latest revision of the sequence.
 
 ### usage
 
+**Unused.**
+
 | Column | Type | Null | References | Notes
 | --- | --- | --- | --- | ---
 | `id`              | integer  | not null |                |
@@ -286,12 +313,16 @@ For image sequences, a small thumbnail of the latest revision of the sequence.
 
 ### users
 
+Holds information about users.
+
+Controllers are not listed here; they are represented as controller folders in the `resources` table and authenticated using the data in the `keys` table.
+
 | Column | Type | Null | References | Notes
 | --- | --- | --- | --- | ---
 | `id`                 | integer   | not null |                |
 | `user_name`          | text(50)  |          |                | Optional login name; email address may also be used to log in
 | `email_address`      | text(100) | not null |                |
-| `password_hash`      | text(128) | not null |                |
+| `password_hash`      | text(128) | not null |                | See below
 | `full_name`          | text(100) | not null |                |
 | `info_status`        | text      | not null |                | JSON object with keys indicating which informational messages have already been shown to the user; currently unused
 | `attributes`         | text      | not null |                | JSON object with additional attributes; currently unused
@@ -299,7 +330,9 @@ For image sequences, a small thumbnail of the latest revision of the sequence.
 | `creation_timestamp` | timestamp | not null |                |
 | `role`               | integer   | not null |                | See below
 
-The `role` column has one of the following values.
+`password_hash` is the [bcrypt](https://en.wikipedia.org/wiki/Bcrypt) hash of the user's password plus a salt value from the server configuration.
+
+`role` has one of the following values.
 
 | ID  | Description
 | --- | ---
